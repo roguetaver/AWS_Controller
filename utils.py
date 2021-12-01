@@ -104,7 +104,7 @@ def delete_sec_group(client, sec_group_name):
 # =====================================================================================================================
 
 
-def create_instance(region, machine_id, security_group, script, name: str):
+def create_instance(region, machine_id, security_group, script, name: str, ec2):
 
     try:
         region = Config(region_name=region)
@@ -130,15 +130,27 @@ def create_instance(region, machine_id, security_group, script, name: str):
             UserData=script
         )
         print("####################################")
-        print("Creating" + name + "Instance")
+        print("Creating " + name)
         print("####################################")
         instance[0].wait_until_running()
         instance[0].reload()
         print("####################################")
-        print("Instance" + name + "successfully created")
+        print(name + " successfully created")
         print("####################################")
 
-        return instance, instance[0].public_ip_address
+        instanceIP = instance[0].public_ip_address
+
+        ec2_instances = ec2.describe_instances()
+        instances = ec2_instances["Reservations"]
+        for instance in instances:
+            for i in instance["Instances"]:
+                if i["State"]["Name"] == "running":
+                    for tag in i["Tags"]:
+                        if tag["Value"] == name:
+                            instanceID = i["InstanceId"]
+                            print(f"DJANGO_ID: {instanceID}")
+
+        return instance, instanceIP, instanceID
 
     except Exception as e:
         print("####################################")
@@ -179,3 +191,46 @@ def delete_all_instances(ec2, waiter):
         print(e)
 
 # =====================================================================================================================
+
+
+def create_image(ec2, instance_id, waiter, name):
+    try:
+        ami_instance = ec2.create_image(
+            Name=name,
+            InstanceId=instance_id,
+            NoReboot=False,
+            TagSpecifications=[
+                {
+                    "ResourceType": "image",
+                    "Tags": [
+                        {
+                            "Key": "Name",
+                            "Value": name
+                        }
+                    ]
+                }
+            ]
+        )
+
+        imageID = ami_instance['ImageId']
+
+        print("####################################")
+        print("Creating image")
+        print("####################################")
+
+        waiter.wait(ImageIds=[imageID])
+
+        print("####################################")
+        print("Image created!")
+        print("####################################")
+
+        return imageID
+
+    except Exception as e:
+
+        print("####################################")
+        print("ERROR")
+        print("####################################")
+        print(e)
+
+        return False

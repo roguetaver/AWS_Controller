@@ -91,31 +91,40 @@ django_instance_script = """
 database_instance_name = "database_instance"
 django_instance_name = "django_instance"
 
-database_instance, POSTGRES_IP = create_instance(
+database_instance, database_IP, database_ID = create_instance(
     OHIO_REGION,
     AMI_ID_OHIO_ID,
     sec_group_database,
     database_instance_script,
-    database_instance_name
+    database_instance_name,
+    ec2_ohio
 )
-command_django = django_instance_script.replace("IP_REPLACE", str(POSTGRES_IP))
+command_django = django_instance_script.replace("IP_REPLACE", str(database_IP))
 
-django_instance, DJANGO_IP = create_instance(
+django_instance, DJANGO_IP, DJANGO_ID = create_instance(
     NORTH_VIRGINIA_REGION,
     AMI_ID_NORTH_VIRGINIA_ID,
     sec_group_django,
     django_instance_script,
-    django_instance_name
+    django_instance_name,
+    ec2_north_virginia
 )
+
+# ==============================================================================================================
+
+# CREATING IMAGES
+# ==============================================================================================================
+
+WAITER_AMI = ec2_north_virginia.get_waiter('image_available')
+
+DJANGO_image_name = "DJANGO_image"
+DJANGO_AMI_ID = create_image(ec2_north_virginia,
+                             DJANGO_ID,
+                             WAITER_AMI,
+                             DJANGO_image_name
+                             )
 
 delete_all_instances(
     ec2_north_virginia,
     WAITER_NORTH_VIRGINIA_INSTANCE
 )
-delete_all_instances(
-    ec2_ohio,
-    WAITER_OHIO_INSTANCE
-)
-
-delete_sec_group(ec2_ohio, security_GP_db_name)
-delete_sec_group(ec2_north_virginia, security_GP_django_name)
