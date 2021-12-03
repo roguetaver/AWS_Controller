@@ -5,6 +5,10 @@ from deleteFunctions import *
 # VARIABLES
 # ==============================================================================================================
 
+logging.info("-------------------------------------------------------------")
+logging.info("RESET ALL INIT")
+logging.info("-------------------------------------------------------------")
+
 north_virginia_region = "us-east-1"
 ohio_region = "us-east-2"
 
@@ -61,3 +65,8 @@ delete_target_group(ec2_load_balancer, target_GP_name)
 
 delete_security_group(ec2_ohio, security_GP_db_name)
 delete_security_group(ec2_north_virginia, security_GP_django_name)
+
+
+logging.info("-------------------------------------------------------------")
+logging.info("RESET ALL END")
+logging.info("-------------------------------------------------------------")

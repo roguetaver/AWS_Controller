@@ -1,0 +1,46 @@
+2021-12-03 15:17:22,444 - INFO - -------------------------------------------------------------
+2021-12-03 15:17:22,444 - INFO - INIT
+2021-12-03 15:17:22,444 - INFO - -------------------------------------------------------------
+2021-12-03 15:17:22,457 - INFO - Found credentials in shared credentials file: ~/.aws/credentials
+2021-12-03 15:17:23,304 - INFO - Load-balancer-T not found
+2021-12-03 15:17:23,304 - INFO - Deleting auto scalling group
+2021-12-03 15:17:24,061 - INFO - Auto-Scalling-GP-T not found
+2021-12-03 15:17:24,062 - INFO - deleting launch configuration
+2021-12-03 15:17:24,831 - INFO - Launch-configuration-ami-T not found
+2021-12-03 15:17:26,965 - INFO - Django-image-T deleted
+2021-12-03 15:17:27,743 - INFO - deleting all instances
+2021-12-03 15:17:28,119 - INFO - Instances deleted
+2021-12-03 15:17:29,405 - INFO - deleting all instances
+2021-12-03 15:18:00,668 - INFO - Instances deleted
+2021-12-03 15:18:01,482 - INFO - Target-GP-load-balancer-T not found
+2021-12-03 15:18:02,174 - INFO - Database_security_GP-T deleted
+2021-12-03 15:18:02,969 - INFO - Django_security_GP-T deleted
+2021-12-03 15:18:03,928 - INFO - Database_security_GP-T created
+2021-12-03 15:18:05,106 - INFO - Django_security_GP-T created
+2021-12-03 15:18:07,103 - INFO - Creating Database-instance-T
+2021-12-03 15:20:08,155 - INFO - Database-instance-T successfully created
+2021-12-03 15:20:09,176 - INFO - ID:i-02041eac3a52c6eb9
+2021-12-03 15:20:11,990 - INFO - Creating Django-instance-T
+2021-12-03 15:22:28,960 - INFO - Django-instance-T successfully created
+2021-12-03 15:22:31,149 - INFO - ID:i-056954904b94d896d
+2021-12-03 15:22:31,593 - INFO - Creating Django-image-T
+2021-12-03 15:25:34,752 - INFO - Django-image-T created!
+2021-12-03 15:25:36,009 - INFO - deleting all instances
+2021-12-03 15:26:22,566 - INFO - Instances deleted
+2021-12-03 15:26:23,608 - INFO - Creating  Target-GP-load-balancer-T
+2021-12-03 15:26:24,594 - INFO - Target-GP-load-balancer-T created
+2021-12-03 15:26:25,949 - INFO - Creating Load-balancer-T
+2021-12-03 15:29:43,899 - INFO - Load-balancer-T created
+2021-12-03 15:29:43,899 - INFO - Launching Launch-configuration-ami-T
+2021-12-03 15:29:45,065 - INFO - Launch-configuration-ami-T Launched
+2021-12-03 15:29:45,065 - INFO - Launching Auto-Scalling-GP-T
+2021-12-03 15:29:46,655 - INFO - Auto-Scalling-GP-T created
+2021-12-03 15:29:46,655 - INFO - Attaching Auto-Scalling-GP-Tto target group
+2021-12-03 15:29:47,133 - INFO - Auto-Scalling-GP-T attached successfully to target group
+2021-12-03 15:29:47,133 - INFO - Creating listener...
+2021-12-03 15:29:47,357 - INFO - Listener created
+2021-12-03 15:29:47,357 - INFO - Creating Auto-scalling-policy
+2021-12-03 15:29:47,888 - INFO - Auto-scalling-policy created
+2021-12-03 15:29:47,888 - INFO - -------------------------------------------------------------
+2021-12-03 15:29:47,889 - INFO - END
+2021-12-03 15:29:47,889 - INFO - -------------------------------------------------------------

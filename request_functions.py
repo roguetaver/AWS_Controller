@@ -1,4 +1,5 @@
 import requests
+import logging
 
 
 # =====================================================================================================================
@@ -25,3 +26,12 @@ def get(url):
     response = requests.get(url)
     print(response)
     return response.json()
+
+# =====================================================================================================================
+
+# LOGGING
+# =====================================================================================================================
+
+
+logging.basicConfig(filename='log_file.txt', filemode='w',
+                    format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)

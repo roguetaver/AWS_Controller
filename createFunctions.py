@@ -1,6 +1,7 @@
 import boto3
 import time
 from botocore.config import Config
+from request_functions import *
 
 # =====================================================================================================================
 
@@ -76,8 +77,10 @@ def create_security_group(ec2, security_group_name, ip_rules):
     except Exception as e:
         print("-------------------------------------------------------------")
         print("Error creating " + security_group_name)
+        logging.info("Error creating " + security_group_name)
         print("-------------------------------------------------------------")
         print(e)
+        logging.info(e)
         return False
 
     security_group_id = security_group['GroupId']
@@ -89,6 +92,7 @@ def create_security_group(ec2, security_group_name, ip_rules):
 
     print("-------------------------------------------------------------")
     print(security_group_name + " created")
+    logging.info(security_group_name + " created")
     print("-------------------------------------------------------------")
 
     return security_group_id
@@ -125,6 +129,7 @@ def create_instance(region, image_id, security_group, script, instance_name, ec2
 
         print("-------------------------------------------------------------")
         print("Creating " + instance_name)
+        logging.info("Creating " + instance_name)
         print(" . ")
 
         instance[0].wait_until_running()
@@ -133,6 +138,7 @@ def create_instance(region, image_id, security_group, script, instance_name, ec2
 
         print(" . ")
         print(instance_name + " successfully created")
+        logging.info(instance_name + " successfully created")
         print("-------------------------------------------------------------")
 
         instanceIP = instance[0].public_ip_address
@@ -148,6 +154,7 @@ def create_instance(region, image_id, security_group, script, instance_name, ec2
                             print(
                                 "-------------------------------------------------------------")
                             print("ID:" + instanceID)
+                            logging.info("ID:" + instanceID)
                             print(
                                 "-------------------------------------------------------------")
 
@@ -157,8 +164,10 @@ def create_instance(region, image_id, security_group, script, instance_name, ec2
 
         print("-------------------------------------------------------------")
         print("Error creating " + instance_name)
+        logging.info("Error creating " + instance_name)
         print("-------------------------------------------------------------")
         print(e)
+        logging.info(e)
         return False
 
 
@@ -188,12 +197,14 @@ def create_image(ec2, instance_id, waiter, image_name):
 
         print("-------------------------------------------------------------")
         print("Creating " + image_name)
+        logging.info("Creating " + image_name)
         print(" . ")
 
         waiter.wait(ImageIds=[imageID])
 
         print(" . ")
         print(image_name + " created!")
+        logging.info(image_name + " created!")
         print("-------------------------------------------------------------")
 
         return imageID
@@ -202,8 +213,10 @@ def create_image(ec2, instance_id, waiter, image_name):
 
         print("-------------------------------------------------------------")
         print("Error creating " + image_name)
+        logging.info("Error creating " + image_name)
         print("-------------------------------------------------------------")
         print(e)
+        logging.info(e)
 
         return False
 
@@ -217,6 +230,7 @@ def create_target_group(ec2_north_virginia, ec2_load_balancer, target_group_name
 
         print("-------------------------------------------------------------")
         print("Creating  " + target_group_name)
+        logging.info("Creating  " + target_group_name)
         print(" . ")
 
         target_group_created = ec2_load_balancer.create_target_group(
@@ -226,6 +240,9 @@ def create_target_group(ec2_north_virginia, ec2_load_balancer, target_group_name
             HealthCheckProtocol='HTTP',
             HealthCheckPort='8080',
             HealthCheckPath='/admin/',
+            Matcher={
+                'HttpCode': '200,302',
+            },
             Port=8080,
             TargetType='instance',
             VpcId=vpc_id
@@ -235,6 +252,7 @@ def create_target_group(ec2_north_virginia, ec2_load_balancer, target_group_name
 
         print(" . ")
         print(target_group_name + " created")
+        logging.info(target_group_name + " created")
         print("-------------------------------------------------------------")
 
         return new_target_group
@@ -243,8 +261,10 @@ def create_target_group(ec2_north_virginia, ec2_load_balancer, target_group_name
 
         print("-------------------------------------------------------------")
         print("Error creating " + target_group_name)
+        logging.info("Error creating " + target_group_name)
         print("-------------------------------------------------------------")
         print(e)
+        logging.info(e)
         return False
 
 # =====================================================================================================================
@@ -276,12 +296,14 @@ def create_load_balancer(client, ec2_load_balancer, security_group, waiter, load
 
         print("-------------------------------------------------------------")
         print("Creating " + load_balancer_name)
+        logging.info("Creating " + load_balancer_name)
         print(" . ")
 
         waiter.wait(LoadBalancerArns=[load_balancer_arn])
 
         print(" . ")
         print(load_balancer_name + " created")
+        logging.info(load_balancer_name + " created")
         print("-------------------------------------------------------------")
 
         return load_balancer, load_balancer_arn
@@ -290,8 +312,10 @@ def create_load_balancer(client, ec2_load_balancer, security_group, waiter, load
 
         print("-------------------------------------------------------------")
         print("Error creating " + load_balancer_name)
+        logging.info("Error creating " + load_balancer_name)
         print("-------------------------------------------------------------")
         print(e)
+        logging.info(e)
 
         return False
 
@@ -303,6 +327,7 @@ def create_launch_config_ami(ec2, image_id, security_group, launch_config_name):
     try:
         print("-------------------------------------------------------------")
         print("Launching " + launch_config_name)
+        logging.info("Launching " + launch_config_name)
         print(" . ")
 
         ec2.create_launch_configuration(
@@ -314,14 +339,17 @@ def create_launch_config_ami(ec2, image_id, security_group, launch_config_name):
 
         print(" . ")
         print(launch_config_name + " Launched")
+        logging.info(launch_config_name + " Launched")
         print("-------------------------------------------------------------")
 
     except Exception as e:
 
         print("-------------------------------------------------------------")
         print("Error creating " + launch_config_name)
+        logging.info("Error creating " + launch_config_name)
         print("-------------------------------------------------------------")
         print(e)
+        logging.info(e)
 
 
 # =====================================================================================================================
@@ -331,6 +359,7 @@ def create_auto_scalling(ec2_auto_scalling, ec2_north_virginia, target_group_arn
     try:
         print("-------------------------------------------------------------")
         print("Launching " + auto_scalling_Name)
+        logging.info("Launching " + auto_scalling_Name)
         print(" . ")
 
         all_zones_list = []
@@ -350,13 +379,16 @@ def create_auto_scalling(ec2_auto_scalling, ec2_north_virginia, target_group_arn
 
         print(" . ")
         print(auto_scalling_Name + " created")
+        logging.info(auto_scalling_Name + " created")
         print("-------------------------------------------------------------")
 
     except Exception as e:
         print("-------------------------------------------------------------")
         print("Error creating " + auto_scalling_Name)
+        logging.info("Error creating " + auto_scalling_Name)
         print("-------------------------------------------------------------")
         print(e)
+        logging.info(e)
 
 
 # =====================================================================================================================
@@ -366,6 +398,7 @@ def attach_load_balancer(ec2_auto_scalling, target_group_arn, auto_scalling_Name
     try:
         print("-------------------------------------------------------------")
         print("Attaching " + auto_scalling_Name + "to target group")
+        logging.info("Attaching " + auto_scalling_Name + "to target group")
         print(" . ")
 
         ec2_auto_scalling.attach_load_balancer_target_groups(
@@ -377,6 +410,8 @@ def attach_load_balancer(ec2_auto_scalling, target_group_arn, auto_scalling_Name
 
         print(" . ")
         print(auto_scalling_Name + " attached successfully to target group")
+        logging.info(auto_scalling_Name +
+                     " attached successfully to target group")
         print("-------------------------------------------------------------")
         return
 
@@ -384,8 +419,11 @@ def attach_load_balancer(ec2_auto_scalling, target_group_arn, auto_scalling_Name
 
         print("-------------------------------------------------------------")
         print("Error attaching " + auto_scalling_Name + "to target group")
+        logging.info("Error attaching " +
+                     auto_scalling_Name + "to target group")
         print("-------------------------------------------------------------")
         print(e)
+        logging.info(e)
         return False
 
 # =====================================================================================================================
@@ -395,6 +433,7 @@ def create_listener(ec2, target_group_arn, load_balancer):
     try:
         print("-------------------------------------------------------------")
         print("Creating listener...")
+        logging.info("Creating listener...")
         print(" . ")
 
         ec2.create_listener(
@@ -411,14 +450,17 @@ def create_listener(ec2, target_group_arn, load_balancer):
 
         print(" . ")
         print("Listener created")
+        logging.info("Listener created")
         print("-------------------------------------------------------------")
 
     except Exception as e:
 
         print("-------------------------------------------------------------")
         print("Error creating listener")
+        logging.info("Error creating listener")
         print("-------------------------------------------------------------")
         print(e)
+        logging.info(e)
 
 # =====================================================================================================================
 
@@ -427,6 +469,7 @@ def create_auto_scalling_group_policy(client, target_group_arn, load_balancer_ar
     try:
         print("-------------------------------------------------------------")
         print("Creating " + policy_name)
+        logging.info("Creating " + policy_name)
         print(" . ")
 
         load_balancer_name = load_balancer_arn[load_balancer_arn.find("app"):]
@@ -448,11 +491,13 @@ def create_auto_scalling_group_policy(client, target_group_arn, load_balancer_ar
 
         print(" . ")
         print(policy_name + " created")
+        logging.info(policy_name + " created")
         print("-------------------------------------------------------------")
 
     except:
         print("-------------------------------------------------------------")
         print("Error creating" + policy_name)
+        logging.info("Error creating " + policy_name)
         print("-------------------------------------------------------------")
 
 # =====================================================================================================================

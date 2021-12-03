@@ -2,6 +2,10 @@ import boto3
 from createFunctions import *
 from deleteFunctions import *
 
+logging.info("-------------------------------------------------------------")
+logging.info("INIT")
+logging.info("-------------------------------------------------------------")
+
 # VARIABLES
 # ==============================================================================================================
 
@@ -219,3 +223,6 @@ create_auto_scalling_group_policy(
     ec2_auto_scalling_group, targetGroup, load_balancer_arn, auto_scalling_name, auto_scalling_policy_name)
 
 # ==============================================================================================================
+logging.info("-------------------------------------------------------------")
+logging.info("END")
+logging.info("-------------------------------------------------------------")

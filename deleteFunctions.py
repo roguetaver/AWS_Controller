@@ -1,6 +1,6 @@
 import boto3
 from botocore.config import Config
-
+from request_functions import *
 
 # =====================================================================================================================
 
@@ -18,16 +18,19 @@ def delete_security_group(ec2, security_group_name):
             except:
                 print("-------------------------------------------------------------")
                 print("Error deleting " + security_group_name)
+                logging.info("Error deleting " + security_group_name)
                 print("-------------------------------------------------------------")
 
     if security_group_bool:
 
         print("-------------------------------------------------------------")
         print(security_group_name + " deleted")
+        logging.info(security_group_name + " deleted")
         print("-------------------------------------------------------------")
     else:
         print("-------------------------------------------------------------")
         print(security_group_name + " not found")
+        logging.info(security_group_name + " not found")
         print("-------------------------------------------------------------")
 
 # =====================================================================================================================
@@ -48,24 +51,29 @@ def delete_all_instances(ec2, waiter):
             ec2.terminate_instances(InstanceIds=delete_instances_ids)
             print("-------------------------------------------------------------")
             print("deleting all instances")
+            logging.info("deleting all instances")
             print(" . ")
 
             waiter.wait(InstanceIds=delete_instances_ids)
 
             print(" . ")
             print("Instances deleted")
+            logging.info("Instances deleted")
             print("-------------------------------------------------------------")
         else:
             print("-------------------------------------------------------------")
             print("No instances to delete")
+            logging.info("No instances to delete")
             print("-------------------------------------------------------------")
             return
 
     except Exception as e:
         print("-------------------------------------------------------------")
         print("ERROR")
+        logging.info("ERROR")
         print("-------------------------------------------------------------")
         print(e)
+        logging.info(e)
 
 # =====================================================================================================================
 
@@ -81,6 +89,7 @@ def delete_image(ec2, image_name):
     if len(images['Images']) < 1:
         print("-------------------------------------------------------------")
         print(image_name + " not found")
+        logging.info(image_name + " not found")
         print("-------------------------------------------------------------")
         return
     else:
@@ -88,6 +97,7 @@ def delete_image(ec2, image_name):
         ec2.deregister_image(ImageId=image_id)
         print("-------------------------------------------------------------")
         print(image_name + " deleted")
+        logging.info(image_name + " deleted")
         print("-------------------------------------------------------------")
 
 # =====================================================================================================================
@@ -100,6 +110,7 @@ def delete_target_group(client_load_balancer, targetGP_name):
     except:
         print("-------------------------------------------------------------")
         print(targetGP_name + " not found")
+        logging.info(targetGP_name + " not found")
         print("-------------------------------------------------------------")
         return
 
@@ -108,6 +119,7 @@ def delete_target_group(client_load_balancer, targetGP_name):
 
     print("-------------------------------------------------------------")
     print(targetGP_name + " deleted")
+    logging.info(targetGP_name + " deleted")
     print("-------------------------------------------------------------")
 
 # =====================================================================================================================
@@ -121,6 +133,7 @@ def delete_load_balancer(ec2_load_balancer, load_balancer_name):
     except:
         print("-------------------------------------------------------------")
         print(load_balancer_name + " not found")
+        logging.info(load_balancer_name + " not found")
         print("-------------------------------------------------------------")
         return
 
@@ -132,6 +145,7 @@ def delete_load_balancer(ec2_load_balancer, load_balancer_name):
 
     print("-------------------------------------------------------------")
     print(load_balancer_name + " deleted")
+    logging.info(load_balancer_name + " deleted")
     print("-------------------------------------------------------------")
     return load_balancer_arn
 
@@ -142,6 +156,7 @@ def delete_launch_configuration(ec2_auto_scalling, launch_configuration_name):
     try:
         print("-------------------------------------------------------------")
         print("deleting launch configuration")
+        logging.info("deleting launch configuration")
         print(" . ")
 
         ec2_auto_scalling.delete_launch_configuration(
@@ -150,11 +165,13 @@ def delete_launch_configuration(ec2_auto_scalling, launch_configuration_name):
 
         print(" . ")
         print(launch_configuration_name + " deleted")
+        logging.info(launch_configuration_name + " deleted")
         print("-------------------------------------------------------------")
 
     except:
         print("-------------------------------------------------------------")
         print(launch_configuration_name + " not found")
+        logging.info(launch_configuration_name + " not found")
         print("-------------------------------------------------------------")
         return
 
@@ -165,6 +182,7 @@ def delete_auto_scalling(ec2, auto_scalling_name):
     try:
         print("-------------------------------------------------------------")
         print("Deleting auto scalling group")
+        logging.info("Deleting auto scalling group")
         print(" . ")
 
         ec2.delete_auto_scaling_group(
@@ -174,9 +192,11 @@ def delete_auto_scalling(ec2, auto_scalling_name):
 
         print(" . ")
         print(auto_scalling_name + " deleted")
+        logging.info(auto_scalling_name + " deleted")
         print("-------------------------------------------------------------")
 
     except:
         print("-------------------------------------------------------------")
         print(auto_scalling_name + " not found")
+        logging.info(auto_scalling_name + " not found")
         print("-------------------------------------------------------------")
