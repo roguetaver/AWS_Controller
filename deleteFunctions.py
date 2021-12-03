@@ -5,22 +5,29 @@ from botocore.config import Config
 # =====================================================================================================================
 
 
-def delete_sec_group(client, sec_group_name):
-    find_sec_group = False
-    security_groups = client.describe_security_groups()
-    for sec_group in security_groups['SecurityGroups']:
-        if sec_group['GroupName'] == sec_group_name:
-            find_sec_group = True
+def delete_security_group(ec2, security_group_name):
+    security_group_bool = False
+    security_groups = ec2.describe_security_groups()
 
-            deleted_sec_group = client.delete_security_group(
-                GroupName=sec_group["GroupName"], GroupId=sec_group["GroupId"])
-    if find_sec_group:
+    for security_group in security_groups['SecurityGroups']:
+        if security_group['GroupName'] == security_group_name:
+            try:
+                security_group_bool = True
+                deleted_sec_group = ec2.delete_security_group(
+                    GroupName=security_group["GroupName"], GroupId=security_group["GroupId"])
+            except:
+                print("-------------------------------------------------------------")
+                print("Error deleting " + security_group_name)
+                print("-------------------------------------------------------------")
+
+    if security_group_bool:
+
         print("-------------------------------------------------------------")
-        print(f"{sec_group_name} deleted")
+        print(security_group_name + " deleted")
         print("-------------------------------------------------------------")
     else:
         print("-------------------------------------------------------------")
-        print(f"{sec_group_name} not found")
+        print(security_group_name + " not found")
         print("-------------------------------------------------------------")
 
 # =====================================================================================================================
@@ -31,15 +38,20 @@ def delete_all_instances(ec2, waiter):
         delete_instances_ids = []
         existing_instances = ec2.describe_instances()
         existing_instances = existing_instances["Reservations"]
+
         for instance in existing_instances:
             for i in instance["Instances"]:
                 delete_instances_ids.append(i["InstanceId"])
+
         if len(delete_instances_ids) > 0:
+
             ec2.terminate_instances(InstanceIds=delete_instances_ids)
             print("-------------------------------------------------------------")
-            print("deleting all instances...")
+            print("deleting all instances")
             print(" . ")
+
             waiter.wait(InstanceIds=delete_instances_ids)
+
             print(" . ")
             print("Instances deleted")
             print("-------------------------------------------------------------")
@@ -48,6 +60,7 @@ def delete_all_instances(ec2, waiter):
             print("No instances to delete")
             print("-------------------------------------------------------------")
             return
+
     except Exception as e:
         print("-------------------------------------------------------------")
         print("ERROR")
@@ -58,103 +71,112 @@ def delete_all_instances(ec2, waiter):
 
 
 def delete_image(ec2, image_name):
-    images_described = ec2.describe_images(Filters=[
+    images = ec2.describe_images(Filters=[
         {
             'Name': 'name',
-            'Values': [
-                image_name,
-            ]
+            'Values': [image_name, ]
         },
     ])
-    if len(images_described['Images']) < 1:
+
+    if len(images['Images']) < 1:
         print("-------------------------------------------------------------")
-        print(f"There is no image with name {image_name}")
+        print(image_name + " not found")
         print("-------------------------------------------------------------")
         return
     else:
-        image_id = images_described['Images'][0]['ImageId']
+        image_id = images['Images'][0]['ImageId']
         ec2.deregister_image(ImageId=image_id)
         print("-------------------------------------------------------------")
-        print(f"Image {image_name} deleted")
+        print(image_name + " deleted")
         print("-------------------------------------------------------------")
 
 # =====================================================================================================================
 
 
-def delete_target_group(client_lb, tg_name):
+def delete_target_group(client_load_balancer, targetGP_name):
     try:
-        tgs = client_lb.describe_target_groups(Names=[tg_name])
+        targetGPS = client_load_balancer.describe_target_groups(Names=[
+                                                                targetGP_name])
     except:
         print("-------------------------------------------------------------")
-        print(f"No target group with name {tg_name}")
+        print(targetGP_name + " not found")
         print("-------------------------------------------------------------")
         return
-    tg_arn = tgs['TargetGroups'][0]['TargetGroupArn']
-    client_lb.delete_target_group(TargetGroupArn=tg_arn)
+
+    targetGP_arn = targetGPS['TargetGroups'][0]['TargetGroupArn']
+    client_load_balancer.delete_target_group(TargetGroupArn=targetGP_arn)
+
     print("-------------------------------------------------------------")
-    print(f"Target Group {tg_name} deleted")
+    print(targetGP_name + " deleted")
     print("-------------------------------------------------------------")
 
 # =====================================================================================================================
 
 
-def delete_load_balancer(client_lb, lb_name):
-    waiter = client_lb.get_waiter('load_balancers_deleted')
+def delete_load_balancer(ec2_load_balancer, load_balancer_name):
     try:
-        load_balancers = client_lb.describe_load_balancers(Names=[lb_name])
+        load_balancers = ec2_load_balancer.describe_load_balancers(Names=[
+                                                                   load_balancer_name])
+
     except:
         print("-------------------------------------------------------------")
-        print(f"No load_balancers with name {lb_name}")
+        print(load_balancer_name + " not found")
         print("-------------------------------------------------------------")
         return
-    for lb in load_balancers['LoadBalancers']:
-        client_lb.delete_load_balancer(LoadBalancerArn=lb['LoadBalancerArn'])
-        lb_arn = lb['LoadBalancerArn']
+
+    for loadbalancer in load_balancers['LoadBalancers']:
+
+        ec2_load_balancer.delete_load_balancer(
+            LoadBalancerArn=loadbalancer['LoadBalancerArn'])
+        load_balancer_arn = loadbalancer['LoadBalancerArn']
 
     print("-------------------------------------------------------------")
-    print(f"Load Balancer with name {lb_name} deleted")
+    print(load_balancer_name + " deleted")
     print("-------------------------------------------------------------")
-    return lb_arn
+    return load_balancer_arn
 
 # =====================================================================================================================
 
 
-def delete_launch_configuration(as_client, launch_config_name):
+def delete_launch_configuration(ec2_auto_scalling, launch_configuration_name):
     try:
         print("-------------------------------------------------------------")
         print("deleting launch configuration")
         print(" . ")
 
-        as_client.delete_launch_configuration(
-            LaunchConfigurationName=launch_config_name
+        ec2_auto_scalling.delete_launch_configuration(
+            LaunchConfigurationName=launch_configuration_name
         )
+
         print(" . ")
-        print("launch configuration deleted")
+        print(launch_configuration_name + " deleted")
         print("-------------------------------------------------------------")
+
     except:
         print("-------------------------------------------------------------")
-        print("launch configuration not found")
+        print(launch_configuration_name + " not found")
         print("-------------------------------------------------------------")
         return
 
 # =====================================================================================================================
 
 
-def delete_auto_scalling(ec2, name):
+def delete_auto_scalling(ec2, auto_scalling_name):
     try:
         print("-------------------------------------------------------------")
-        print("Deleting auto scalling group...")
+        print("Deleting auto scalling group")
         print(" . ")
 
         ec2.delete_auto_scaling_group(
-            AutoScalingGroupName=name,
+            AutoScalingGroupName=auto_scalling_name,
             ForceDelete=True
         )
+
         print(" . ")
-        print("Auto scalling group deleted")
+        print(auto_scalling_name + " deleted")
         print("-------------------------------------------------------------")
 
     except:
         print("-------------------------------------------------------------")
-        print("Auto Scalling Group not found")
+        print(auto_scalling_name + " not found")
         print("-------------------------------------------------------------")

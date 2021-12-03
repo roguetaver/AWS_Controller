@@ -2,75 +2,75 @@ import boto3
 from createFunctions import *
 from deleteFunctions import *
 
-# INITIAL SETUP
+# VARIABLES
 # ==============================================================================================================
 
-NORTH_VIRGINIA_REGION = "us-east-1"
-OHIO_REGION = "us-east-2"
+north_virginia_region = "us-east-1"
+ohio_region = "us-east-2"
 
-AMI_ID_NORTH_VIRGINIA_ID = "ami-0279c3b3186e54acd"
-AMI_ID_OHIO_ID = "ami-020db2c14939a8efb"
+image_north_virginia_id = "ami-0279c3b3186e54acd"
+image_ohio_id = "ami-020db2c14939a8efb"
 
-security_GP_db_name = "database_securityGP"
-security_GP_django_name = "django_securityGP"
+ec2_north_virginia = boto3.client('ec2', region_name=north_virginia_region)
+ec2_ohio = boto3.client('ec2', region_name=ohio_region)
+ec2_load_balancer = boto3.client('elbv2', region_name=north_virginia_region)
+ec2_auto_scalling_group = boto3.client(
+    'autoscaling', region_name=north_virginia_region)
 
-ec2_north_virginia = boto3.client('ec2', region_name=NORTH_VIRGINIA_REGION)
-ec2_ohio = boto3.client('ec2', region_name=OHIO_REGION)
-ec2_load_balancer = boto3.client('elbv2', region_name=NORTH_VIRGINIA_REGION)
-ec2_auto_scalling = boto3.client(
-    'autoscaling', region_name=NORTH_VIRGINIA_REGION)
+security_GP_db_name = "Database_security_GP-T"
+security_GP_django_name = "Django_security_GP-T"
+target_GP_name = "Target-GP-load-balancer-T"
+django_image_name = "Django-image-T"
+load_balancer_name = "Load-balancer-T"
+database_instance_name = "Database-instance-T"
+django_instance_name = "Django-instance-T"
+launch_config_name = "Launch-configuration-ami-T"
+auto_scalling_name = "Auto-Scalling-GP-T"
+auto_scalling_policy_name = "Auto-scalling-policy"
 
-targetGP_name = "target-GP-load-balancer"
-DJANGO_image_name = "DJANGO_image"
-LoadBalancer_name = "LoadBalancerT"
-database_instance_name = "database_instance"
-django_instance_name = "django_instance"
-launch_config_name = "launch_configuration_ami"
-auto_scalling_name = "autoScallingGP"
-
-WAITER_AMI = ec2_north_virginia.get_waiter('image_available')
-WAITER_CREATE_LOAD_BALANCER = ec2_load_balancer.get_waiter(
+waiter_ami = ec2_north_virginia.get_waiter('image_available')
+waiter_load_balancer = ec2_load_balancer.get_waiter(
     'load_balancer_available')
-WAITER_NORTH_VIRGINIA_INSTANCE = ec2_north_virginia.get_waiter(
+waiter_north_virginia_instance = ec2_north_virginia.get_waiter(
     'instance_terminated')
-WAITER_OHIO_INSTANCE = ec2_ohio.get_waiter('instance_terminated')
+waiter_ohio_instance = ec2_ohio.get_waiter('instance_terminated')
 
 # ==============================================================================================================
 
 # DELETING
 # ==============================================================================================================
-delete_load_balancer(ec2_load_balancer, LoadBalancer_name)
+delete_load_balancer(ec2_load_balancer, load_balancer_name)
 
-delete_auto_scalling(ec2_auto_scalling, auto_scalling_name)
+delete_auto_scalling(ec2_auto_scalling_group, auto_scalling_name)
 
-delete_launch_configuration(ec2_auto_scalling, launch_config_name)
+delete_launch_configuration(ec2_auto_scalling_group, launch_config_name)
 
-delete_image(ec2_north_virginia, DJANGO_image_name)
+delete_image(ec2_north_virginia, django_image_name)
 
 delete_all_instances(
     ec2_north_virginia,
-    WAITER_NORTH_VIRGINIA_INSTANCE
+    waiter_north_virginia_instance
 )
 
 delete_all_instances(
     ec2_ohio,
-    WAITER_OHIO_INSTANCE
+    waiter_ohio_instance
 )
 
-delete_target_group(ec2_load_balancer, targetGP_name)
+delete_target_group(ec2_load_balancer, target_GP_name)
 
-delete_sec_group(ec2_ohio, security_GP_db_name)
-delete_sec_group(ec2_north_virginia, security_GP_django_name)
+delete_security_group(ec2_ohio, security_GP_db_name)
+delete_security_group(ec2_north_virginia, security_GP_django_name)
 
 # ==============================================================================================================
 
 # CREATING SECURITY GROUPS
 # ==============================================================================================================
 
-sec_group_database = create_sec_group(
-    ec2_ohio, security_GP_db_name, Security_IP_Database)
-sec_group_django = create_sec_group(
-    ec2_north_virginia, security_GP_django_name, Security_IP_Django)
+sec_group_database = create_security_group(
+    ec2_ohio, security_GP_db_name, security_group_IP_rules_database)
+sec_group_django = create_security_group(
+    ec2_north_virginia, security_GP_django_name, security_group_IP_rules_django)
 
 # ==============================================================================================================
 
@@ -100,25 +100,27 @@ django_instance_script = """
   - sudo apt update -y
   - git clone https://github.com/roguetaver/tasks
   - cd tasks
-  - sed -i "s/node1/POSTGRES_IP/g" ./portfolio/settings.py
+  - sed -i "s/node1/PLACEHOLDER/g" ./portfolio/settings.py
   - ./install.sh
   - sudo ufw allow 8080/tcp -y
   - sudo reboot
   """
 
 database_instance, database_IP, database_ID = create_instance(
-    OHIO_REGION,
-    AMI_ID_OHIO_ID,
+    ohio_region,
+    image_ohio_id,
     sec_group_database,
     database_instance_script,
     database_instance_name,
     ec2_ohio
 )
-command_django = django_instance_script.replace("IP_REPLACE", str(database_IP))
 
-django_instance, DJANGO_IP, DJANGO_ID = create_instance(
-    NORTH_VIRGINIA_REGION,
-    AMI_ID_NORTH_VIRGINIA_ID,
+django_instance_script = django_instance_script.replace(
+    "PLACEHOLDER", str(database_IP))
+
+django_instance, django_IP, django_ID = create_instance(
+    north_virginia_region,
+    image_north_virginia_id,
     sec_group_django,
     django_instance_script,
     django_instance_name,
@@ -130,15 +132,15 @@ django_instance, DJANGO_IP, DJANGO_ID = create_instance(
 # CREATING IMAGES
 # ==============================================================================================================
 
-DJANGO_AMI_ID = create_image(ec2_north_virginia,
-                             DJANGO_ID,
-                             WAITER_AMI,
-                             DJANGO_image_name
-                             )
+django_image_id = create_image(ec2_north_virginia,
+                               django_ID,
+                               waiter_ami,
+                               django_image_name
+                               )
 
 delete_all_instances(
     ec2_north_virginia,
-    WAITER_NORTH_VIRGINIA_INSTANCE
+    waiter_north_virginia_instance
 )
 
 # ==============================================================================================================
@@ -147,7 +149,7 @@ delete_all_instances(
 # ==============================================================================================================
 
 targetGroup = create_target_group(
-    ec2_north_virginia, ec2_load_balancer, targetGP_name)
+    ec2_north_virginia, ec2_load_balancer, target_GP_name)
 
 # ==============================================================================================================
 
@@ -155,12 +157,12 @@ targetGroup = create_target_group(
 # ==============================================================================================================
 
 
-load_balancer, LOAD_BALANCER_ARN = create_loadbalancer(
+load_balancer, load_balancer_arn = create_load_balancer(
     ec2_north_virginia,
     ec2_load_balancer,
     sec_group_django,
-    WAITER_CREATE_LOAD_BALANCER,
-    LoadBalancer_name
+    waiter_load_balancer,
+    load_balancer_name
 )
 # ==============================================================================================================
 
@@ -168,8 +170,8 @@ load_balancer, LOAD_BALANCER_ARN = create_loadbalancer(
 # ==============================================================================================================
 
 create_launch_config_ami(
-    ec2_auto_scalling,
-    DJANGO_AMI_ID,
+    ec2_auto_scalling_group,
+    django_image_id,
     sec_group_django,
     launch_config_name
 )
@@ -180,7 +182,7 @@ create_launch_config_ami(
 # ==============================================================================================================
 
 create_auto_scalling(
-    ec2_auto_scalling,
+    ec2_auto_scalling_group,
     ec2_north_virginia,
     targetGroup,
     auto_scalling_name,
@@ -192,15 +194,15 @@ create_auto_scalling(
 # LOAD BALANCER INTEGRATION
 # ==============================================================================================================
 
-attach_load_balancer(ec2_auto_scalling, targetGroup, auto_scalling_name)
+attach_load_balancer(ec2_auto_scalling_group, targetGroup, auto_scalling_name)
 
 # ==============================================================================================================
 
 # CREATING AUTO SCALLING POLICY
 # ==============================================================================================================
 
-create_auto_scalling_policy(
-    ec2_auto_scalling, targetGroup, LOAD_BALANCER_ARN)
+create_auto_scalling_group_policy(
+    ec2_auto_scalling_group, target_GP_name, load_balancer_name, auto_scalling_name, auto_scalling_policy_name)
 
 # ==============================================================================================================
 
@@ -210,5 +212,7 @@ create_auto_scalling_policy(
 create_listener(
     ec2_load_balancer,
     targetGroup,
-    LOAD_BALANCER_ARN
+    load_balancer_arn
 )
+
+# ==============================================================================================================

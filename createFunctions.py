@@ -3,7 +3,7 @@ from botocore.config import Config
 
 # =====================================================================================================================
 
-Security_IP_Database = [
+security_group_IP_rules_database = [
     {
         'IpProtocol': 'tcp',
         'FromPort': 22,
@@ -30,7 +30,7 @@ Security_IP_Database = [
     },
 ]
 
-Security_IP_Django = [
+security_group_IP_rules_django = [
     {
         'IpProtocol': 'tcp',
         'FromPort': 22,
@@ -60,40 +60,49 @@ Security_IP_Django = [
 # =====================================================================================================================
 
 
-def create_sec_group(client, name, sec_rules):
-    vpcs = client.describe_vpcs()
+def create_security_group(ec2, security_group_name, ip_rules):
+    vpcs = ec2.describe_vpcs()
 
     vpc_id = vpcs['Vpcs'][0]['VpcId']
 
     try:
-        security_group = client.create_security_group(
-            GroupName=name, Description="f", VpcId=vpc_id)
-    except Exception as error:
+        security_group = ec2.create_security_group(
+            GroupName=security_group_name,
+            Description='F',
+            VpcId=vpc_id
+        )
+
+    except Exception as e:
         print("-------------------------------------------------------------")
-        print(error)
+        print("Error creating " + security_group_name)
         print("-------------------------------------------------------------")
+        print(e)
+        return False
 
-    sec_group_id = security_group['GroupId']
+    security_group_id = security_group['GroupId']
 
-    client.authorize_security_group_ingress(
-        GroupId=sec_group_id, IpPermissions=sec_rules)
+    ec2.authorize_security_group_ingress(
+        GroupId=security_group_id,
+        IpPermissions=ip_rules
+    )
+
     print("-------------------------------------------------------------")
-    print(f"Security Group {name} created")
+    print(security_group_name + " created")
     print("-------------------------------------------------------------")
 
-    return sec_group_id
+    return security_group_id
 
 # =====================================================================================================================
 
 
-def create_instance(region, machine_id, security_group, script, name: str, ec2):
+def create_instance(region, image_id, security_group, script, instance_name, ec2):
 
     try:
         region = Config(region_name=region)
         resource = boto3.resource("ec2", config=region)
 
         instance = resource.create_instances(
-            ImageId=machine_id,
+            ImageId=image_id,
             MinCount=1,
             MaxCount=1,
             InstanceType="t2.micro",
@@ -104,39 +113,47 @@ def create_instance(region, machine_id, security_group, script, name: str, ec2):
                     "Tags": [
                         {
                             "Key": "Name",
-                            "Value": name
+                            "Value": instance_name
                         }
                     ]
                 }
             ],
             UserData=script
         )
+
         print("-------------------------------------------------------------")
-        print("Creating " + name)
+        print("Creating " + instance_name)
         print(" . ")
+
         instance[0].wait_until_running()
         instance[0].reload()
+
         print(" . ")
-        print(name + " successfully created")
+        print(instance_name + " successfully created")
         print("-------------------------------------------------------------")
 
         instanceIP = instance[0].public_ip_address
 
-        ec2_instances = ec2.describe_instances()
-        instances = ec2_instances["Reservations"]
+        client_instances = ec2.describe_instances()
+        instances = client_instances["Reservations"]
         for instance in instances:
             for i in instance["Instances"]:
                 if i["State"]["Name"] == "running":
                     for tag in i["Tags"]:
-                        if tag["Value"] == name:
+                        if tag["Value"] == instance_name:
                             instanceID = i["InstanceId"]
-                            print(f"DJANGO_ID: {instanceID}")
+                            print(
+                                "-------------------------------------------------------------")
+                            print("DJANGO_ID:" + instanceID)
+                            print(
+                                "-------------------------------------------------------------")
 
         return instance, instanceIP, instanceID
 
     except Exception as e:
+
         print("-------------------------------------------------------------")
-        print("ERROR")
+        print("Error creating " + instance_name)
         print("-------------------------------------------------------------")
         print(e)
         return False
@@ -145,10 +162,10 @@ def create_instance(region, machine_id, security_group, script, name: str, ec2):
 # =====================================================================================================================
 
 
-def create_image(ec2, instance_id, waiter, name):
+def create_image(ec2, instance_id, waiter, image_name):
     try:
         ami_instance = ec2.create_image(
-            Name=name,
+            Name=image_name,
             InstanceId=instance_id,
             NoReboot=False,
             TagSpecifications=[
@@ -157,7 +174,7 @@ def create_image(ec2, instance_id, waiter, name):
                     "Tags": [
                         {
                             "Key": "Name",
-                            "Value": name
+                            "Value": image_name
                         }
                     ]
                 }
@@ -167,13 +184,13 @@ def create_image(ec2, instance_id, waiter, name):
         imageID = ami_instance['ImageId']
 
         print("-------------------------------------------------------------")
-        print("Creating image")
+        print("Creating " + image_name)
         print(" . ")
 
         waiter.wait(ImageIds=[imageID])
 
         print(" . ")
-        print("Image created!")
+        print(image_name + " created!")
         print("-------------------------------------------------------------")
 
         return imageID
@@ -181,7 +198,7 @@ def create_image(ec2, instance_id, waiter, name):
     except Exception as e:
 
         print("-------------------------------------------------------------")
-        print("ERROR")
+        print("Error creating " + image_name)
         print("-------------------------------------------------------------")
         print(e)
 
@@ -190,17 +207,17 @@ def create_image(ec2, instance_id, waiter, name):
 # =====================================================================================================================
 
 
-def create_target_group(ec2_north_virginia, ec2_load_balancer, name):
+def create_target_group(ec2_north_virginia, ec2_load_balancer, target_group_name):
     try:
         target_groups = ec2_north_virginia.describe_vpcs()
         vpc_id = target_groups["Vpcs"][0]["VpcId"]
 
         print("-------------------------------------------------------------")
-        print("Creating target group...")
+        print("Creating  " + target_group_name)
         print(" . ")
 
         target_group_created = ec2_load_balancer.create_target_group(
-            Name=name,
+            Name=target_group_name,
             Protocol='HTTP',
             Port=8080,
             TargetType='instance',
@@ -210,14 +227,15 @@ def create_target_group(ec2_north_virginia, ec2_load_balancer, name):
         new_target_group = target_group_created["TargetGroups"][0]["TargetGroupArn"]
 
         print(" . ")
-        print("Target group created")
+        print(target_group_name + " created")
         print("-------------------------------------------------------------")
 
         return new_target_group
 
     except Exception as e:
+
         print("-------------------------------------------------------------")
-        print("ERROR")
+        print("Error creating " + target_group_name)
         print("-------------------------------------------------------------")
         print(e)
         return False
@@ -225,15 +243,17 @@ def create_target_group(ec2_north_virginia, ec2_load_balancer, name):
 # =====================================================================================================================
 
 
-def create_loadbalancer(client, ec2_load_balancer, security_group, waiter, name):
+def create_load_balancer(client, ec2_load_balancer, security_group, waiter, load_balancer_name):
     try:
+
         subnets = client.describe_subnets()
         subnets_list = []
+
         for subnet in subnets["Subnets"]:
             subnets_list.append(subnet["SubnetId"])
 
         load_balancer = ec2_load_balancer.create_load_balancer(
-            Name=name,
+            Name=load_balancer_name,
             SecurityGroups=[security_group],
             Tags=[
                 {
@@ -248,12 +268,13 @@ def create_loadbalancer(client, ec2_load_balancer, security_group, waiter, name)
         load_balancer_arn = load_balancer['LoadBalancers'][0]['LoadBalancerArn']
 
         print("-------------------------------------------------------------")
-        print("Creating load balancer...")
+        print("Creating " + load_balancer_name)
         print(" . ")
 
         waiter.wait(LoadBalancerArns=[load_balancer_arn])
+
         print(" . ")
-        print("load balancer Created!")
+        print(load_balancer_name + " created")
         print("-------------------------------------------------------------")
 
         return load_balancer, load_balancer_arn
@@ -261,7 +282,7 @@ def create_loadbalancer(client, ec2_load_balancer, security_group, waiter, name)
     except Exception as e:
 
         print("-------------------------------------------------------------")
-        print("ERROR")
+        print("Error creating " + load_balancer_name)
         print("-------------------------------------------------------------")
         print(e)
 
@@ -271,25 +292,27 @@ def create_loadbalancer(client, ec2_load_balancer, security_group, waiter, name)
 # =====================================================================================================================
 
 
-def create_launch_config_ami(ec2, ami_id, security_group, name):
+def create_launch_config_ami(ec2, image_id, security_group, launch_config_name):
     try:
         print("-------------------------------------------------------------")
-        print("Launching AMI...")
+        print("Launching " + launch_config_name)
         print(" . ")
 
         ec2.create_launch_configuration(
-            LaunchConfigurationName=name,
-            ImageId=ami_id,
+            LaunchConfigurationName=launch_config_name,
+            ImageId=image_id,
             SecurityGroups=[security_group],
             InstanceType='t2.micro',
         )
+
         print(" . ")
-        print("AMI Launched")
+        print(launch_config_name + " Launched")
         print("-------------------------------------------------------------")
 
     except Exception as e:
+
         print("-------------------------------------------------------------")
-        print("Error launching AMI")
+        print("Error creating " + launch_config_name)
         print("-------------------------------------------------------------")
         print(e)
 
@@ -297,31 +320,34 @@ def create_launch_config_ami(ec2, ami_id, security_group, name):
 # =====================================================================================================================
 
 
-def create_auto_scalling(ec2_auto_scalling, ec2_north_virginia, target_group, autoScallingName, launchName):
+def create_auto_scalling(ec2_auto_scalling, ec2_north_virginia, target_group_arn, auto_scalling_Name, launch_config_Name):
     try:
         print("-------------------------------------------------------------")
-        print("Launching auto scalling group...")
+        print("Launching " + auto_scalling_Name)
         print(" . ")
-        list_all_zones = []
-        all_zones = ec2_north_virginia.describe_availability_zones()
-        for i in all_zones["AvailabilityZones"]:
-            list_all_zones.append(i["ZoneName"])
+
+        all_zones_list = []
+        zones = ec2_north_virginia.describe_availability_zones()
+
+        for i in zones["AvailabilityZones"]:
+            all_zones_list.append(i["ZoneName"])
 
         ec2_auto_scalling.create_auto_scaling_group(
-            AutoScalingGroupName=autoScallingName,
-            LaunchConfigurationName=launchName,
+            AutoScalingGroupName=auto_scalling_Name,
+            LaunchConfigurationName=launch_config_Name,
             MinSize=1,
             MaxSize=3,
-            TargetGroupARNs=[target_group],
-            AvailabilityZones=list_all_zones
+            TargetGroupARNs=[target_group_arn],
+            AvailabilityZones=all_zones_list
         )
+
         print(" . ")
-        print("Auto scalling group created")
+        print(auto_scalling_Name + " created")
         print("-------------------------------------------------------------")
 
     except Exception as e:
         print("-------------------------------------------------------------")
-        print("Error creating Auto scalling group")
+        print("Error creating " + auto_scalling_Name)
         print("-------------------------------------------------------------")
         print(e)
 
@@ -329,25 +355,28 @@ def create_auto_scalling(ec2_auto_scalling, ec2_north_virginia, target_group, au
 # =====================================================================================================================
 
 
-def attach_load_balancer(ec2_auto_scalling, target_group_arn, autoScallingName):
+def attach_load_balancer(ec2_auto_scalling, target_group_arn, auto_scalling_Name):
     try:
         print("-------------------------------------------------------------")
-        print("Attaching load balancer to target group...")
+        print("Attaching " + auto_scalling_Name + "to target group")
         print(" . ")
 
         ec2_auto_scalling.attach_load_balancer_target_groups(
-            AutoScalingGroupName=autoScallingName,
+            AutoScalingGroupName=auto_scalling_Name,
             TargetGroupARNs=[
                 target_group_arn
             ]
         )
+
         print(" . ")
-        print("Load balancer attached successfully")
+        print(auto_scalling_Name + " attached successfully to target group")
         print("-------------------------------------------------------------")
         return
+
     except Exception as e:
+
         print("-------------------------------------------------------------")
-        print("ERROR")
+        print("Error attaching " + auto_scalling_Name + "to target group")
         print("-------------------------------------------------------------")
         print(e)
         return False
@@ -355,11 +384,12 @@ def attach_load_balancer(ec2_auto_scalling, target_group_arn, autoScallingName):
 # =====================================================================================================================
 
 
-def create_listener(ec2, target_group, load_balancer):
+def create_listener(ec2, target_group_arn, load_balancer):
     try:
         print("-------------------------------------------------------------")
         print("Creating listener...")
         print(" . ")
+
         ec2.create_listener(
             LoadBalancerArn=load_balancer,
             Protocol='HTTP',
@@ -367,14 +397,17 @@ def create_listener(ec2, target_group, load_balancer):
             DefaultActions=[
                 {
                     'Type': 'forward',
-                    'TargetGroupArn': target_group
+                    'TargetGroupArn': target_group_arn
                 }
             ]
         )
+
         print(" . ")
         print("Listener created")
         print("-------------------------------------------------------------")
+
     except Exception as e:
+
         print("-------------------------------------------------------------")
         print("Error creating listener")
         print("-------------------------------------------------------------")
@@ -383,18 +416,15 @@ def create_listener(ec2, target_group, load_balancer):
 # =====================================================================================================================
 
 
-def create_auto_scalling_policy(ec2, target_group, load_balancer):
+def create_auto_scalling_group_policy(client, target_group_name, load_balancer_name, auto_scaling_group_name, policy_name):
     try:
         print("-------------------------------------------------------------")
-        print("Creating auto scalling policy...")
+        print("Creating auto scalling group policy...")
         print(" . ")
-        load_balancer_name = load_balancer[load_balancer.find("app"):]
-        target_group_name = target_group[target_group.find(
-            "targetgroup"):]
 
-        ec2.put_scaling_policy(
-            AutoScalingGroupName="auto_scaling_group",
-            PolicyName="TargetTrackingScaling",
+        client.put_scaling_policy(
+            AutoScalingGroupName=auto_scaling_group_name,
+            PolicyName=policy_name,
             PolicyType="TargetTrackingScaling",
             TargetTrackingConfiguration={
                 "PredefinedMetricSpecification": {
@@ -404,9 +434,11 @@ def create_auto_scalling_policy(ec2, target_group, load_balancer):
                 "TargetValue": 50
             }
         )
+
         print(" . ")
         print("Policy created")
         print("-------------------------------------------------------------")
+
     except:
         print("-------------------------------------------------------------")
         print("Could not create policy")

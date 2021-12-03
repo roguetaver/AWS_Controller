@@ -2,63 +2,62 @@ import boto3
 from createFunctions import *
 from deleteFunctions import *
 
+# VARIABLES
 # ==============================================================================================================
-# INITIAL SETUP
-# ==============================================================================================================
 
-NORTH_VIRGINIA_REGION = "us-east-1"
-OHIO_REGION = "us-east-2"
+north_virginia_region = "us-east-1"
+ohio_region = "us-east-2"
 
-AMI_ID_NORTH_VIRGINIA_ID = "ami-0279c3b3186e54acd"
-AMI_ID_OHIO_ID = "ami-020db2c14939a8efb"
+image_north_virginia_id = "ami-0279c3b3186e54acd"
+image_ohio_id = "ami-020db2c14939a8efb"
 
-security_GP_db_name = "database_securityGP"
-security_GP_django_name = "django_securityGP"
+ec2_north_virginia = boto3.client('ec2', region_name=north_virginia_region)
+ec2_ohio = boto3.client('ec2', region_name=ohio_region)
+ec2_load_balancer = boto3.client('elbv2', region_name=north_virginia_region)
+ec2_auto_scalling_group = boto3.client(
+    'autoscaling', region_name=north_virginia_region)
 
-ec2_north_virginia = boto3.client('ec2', region_name=NORTH_VIRGINIA_REGION)
-ec2_ohio = boto3.client('ec2', region_name=OHIO_REGION)
-ec2_load_balancer = boto3.client('elbv2', region_name=NORTH_VIRGINIA_REGION)
-ec2_auto_scalling = boto3.client(
-    'autoscaling', region_name=NORTH_VIRGINIA_REGION)
+security_GP_db_name = "Database_security_GP-T"
+security_GP_django_name = "Django_security_GP-T"
+target_GP_name = "Target-GP-load-balancer-T"
+django_image_name = "Django-image-T"
+load_balancer_name = "Load-balancer-T"
+database_instance_name = "Database-instance-T"
+django_instance_name = "Django-instance-T"
+launch_config_name = "Launch-configuration-ami-T"
+auto_scalling_name = "Auto-Scalling-GP-T"
+auto_scalling_policy_name = "Auto-scalling-policy"
 
-targetGP_name = "target-GP-load-balancer"
-DJANGO_image_name = "DJANGO_image"
-LoadBalancer_name = "LoadBalancerT"
-database_instance_name = "database_instance"
-django_instance_name = "django_instance"
-launch_config_name = "launch_configuration_ami"
-auto_scalling_name = "autoScallingGP"
-
-WAITER_AMI = ec2_north_virginia.get_waiter('image_available')
-WAITER_CREATE_LOAD_BALANCER = ec2_load_balancer.get_waiter(
+waiter_ami = ec2_north_virginia.get_waiter('image_available')
+waiter_load_balancer = ec2_load_balancer.get_waiter(
     'load_balancer_available')
-WAITER_NORTH_VIRGINIA_INSTANCE = ec2_north_virginia.get_waiter(
+waiter_north_virginia_instance = ec2_north_virginia.get_waiter(
     'instance_terminated')
-WAITER_OHIO_INSTANCE = ec2_ohio.get_waiter('instance_terminated')
+waiter_ohio_instance = ec2_ohio.get_waiter('instance_terminated')
 
 # ==============================================================================================================
+
 # DELETING
 # ==============================================================================================================
+delete_load_balancer(ec2_load_balancer, load_balancer_name)
 
-delete_load_balancer(ec2_load_balancer, LoadBalancer_name)
+delete_auto_scalling(ec2_auto_scalling_group, auto_scalling_name)
 
-delete_auto_scalling(ec2_auto_scalling, auto_scalling_name)
+delete_launch_configuration(ec2_auto_scalling_group, launch_config_name)
 
-delete_launch_configuration(ec2_auto_scalling, launch_config_name)
-
-delete_image(ec2_north_virginia, DJANGO_image_name)
+delete_image(ec2_north_virginia, django_image_name)
 
 delete_all_instances(
     ec2_north_virginia,
-    WAITER_NORTH_VIRGINIA_INSTANCE
+    waiter_north_virginia_instance
 )
 
 delete_all_instances(
     ec2_ohio,
-    WAITER_OHIO_INSTANCE
+    waiter_ohio_instance
 )
 
-delete_target_group(ec2_load_balancer, targetGP_name)
+delete_target_group(ec2_load_balancer, target_GP_name)
 
-delete_sec_group(ec2_ohio, security_GP_db_name)
-delete_sec_group(ec2_north_virginia, security_GP_django_name)
+delete_security_group(ec2_ohio, security_GP_db_name)
+delete_security_group(ec2_north_virginia, security_GP_django_name)
