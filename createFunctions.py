@@ -1,4 +1,5 @@
 import boto3
+import time
 from botocore.config import Config
 
 # =====================================================================================================================
@@ -102,6 +103,7 @@ def create_instance(region, image_id, security_group, script, instance_name, ec2
         resource = boto3.resource("ec2", config=region)
 
         instance = resource.create_instances(
+            KeyName="andre.tavernaro",
             ImageId=image_id,
             MinCount=1,
             MaxCount=1,
@@ -127,6 +129,7 @@ def create_instance(region, image_id, security_group, script, instance_name, ec2
 
         instance[0].wait_until_running()
         instance[0].reload()
+        time.sleep(90)
 
         print(" . ")
         print(instance_name + " successfully created")
@@ -144,7 +147,7 @@ def create_instance(region, image_id, security_group, script, instance_name, ec2
                             instanceID = i["InstanceId"]
                             print(
                                 "-------------------------------------------------------------")
-                            print("DJANGO_ID:" + instanceID)
+                            print("ID:" + instanceID)
                             print(
                                 "-------------------------------------------------------------")
 
@@ -219,6 +222,10 @@ def create_target_group(ec2_north_virginia, ec2_load_balancer, target_group_name
         target_group_created = ec2_load_balancer.create_target_group(
             Name=target_group_name,
             Protocol='HTTP',
+            HealthCheckEnabled=True,
+            HealthCheckProtocol='HTTP',
+            HealthCheckPort='8080',
+            HealthCheckPath='/admin/',
             Port=8080,
             TargetType='instance',
             VpcId=vpc_id
@@ -416,11 +423,15 @@ def create_listener(ec2, target_group_arn, load_balancer):
 # =====================================================================================================================
 
 
-def create_auto_scalling_group_policy(client, target_group_name, load_balancer_name, auto_scaling_group_name, policy_name):
+def create_auto_scalling_group_policy(client, target_group_arn, load_balancer_arn, auto_scaling_group_name, policy_name):
     try:
         print("-------------------------------------------------------------")
-        print("Creating auto scalling group policy...")
+        print("Creating " + policy_name)
         print(" . ")
+
+        load_balancer_name = load_balancer_arn[load_balancer_arn.find("app"):]
+        target_group_name = target_group_arn[target_group_arn.find(
+            "targetgroup"):]
 
         client.put_scaling_policy(
             AutoScalingGroupName=auto_scaling_group_name,
@@ -436,12 +447,12 @@ def create_auto_scalling_group_policy(client, target_group_name, load_balancer_n
         )
 
         print(" . ")
-        print("Policy created")
+        print(policy_name + " created")
         print("-------------------------------------------------------------")
 
     except:
         print("-------------------------------------------------------------")
-        print("Could not create policy")
+        print("Error creating" + policy_name)
         print("-------------------------------------------------------------")
 
 # =====================================================================================================================

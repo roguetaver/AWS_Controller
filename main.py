@@ -78,33 +78,35 @@ sec_group_django = create_security_group(
 # ==============================================================================================================
 
 database_instance_script = """
-  # cloud-config
-  runcmd:
-  - cd /
-  - sudo apt update
-  - sudo apt install postgresql postgresql-contrib -y
-  - sudo su - postgres
-  - sudo -u postgres psql -c "CREATE USER cloud WITH PASSWORD 'cloud';"
-  - sudo -u postgres psql -c "CREATE DATABASE tasks;"
-  - sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE tasks TO cloud;"
-  - sudo echo "listen_addresses = '*'" >> /etc/postgresql/10/main/postgresql.conf
-  - sudo echo "host all all 0.0.0.0/0 trust" >> /etc/postgresql/10/main/pg_hba.conf
-  - sudo ufw allow 5432/tcp -y
-  - sudo systemctl restart postgresql
-  """
+#cloud-config
+
+runcmd:
+- cd /
+- sudo apt update
+- sudo apt install postgresql postgresql-contrib -y
+- sudo su - postgres
+- sudo -u postgres psql -c "CREATE USER cloud WITH PASSWORD 'cloud';"
+- sudo -u postgres psql -c "CREATE DATABASE tasks;"
+- sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE tasks TO cloud;"
+- sudo echo "listen_addresses = '*'" >> /etc/postgresql/10/main/postgresql.conf
+- sudo echo "host all all 0.0.0.0/0 trust" >> /etc/postgresql/10/main/pg_hba.conf
+- sudo ufw allow 5432/tcp -y
+- sudo systemctl restart postgresql
+"""
 
 django_instance_script = """
-  # cloud-config
-  runcmd:
-  - cd /home/ubuntu
-  - sudo apt update -y
-  - git clone https://github.com/roguetaver/tasks
-  - cd tasks
-  - sed -i "s/node1/PLACEHOLDER/g" ./portfolio/settings.py
-  - ./install.sh
-  - sudo ufw allow 8080/tcp -y
-  - sudo reboot
-  """
+#cloud-config
+
+runcmd:
+- cd /home/ubuntu 
+- sudo apt update -y
+- git clone https://github.com/roguetaver/tasks
+- cd tasks
+- sed -i "s/node1/PLACEHOLDER/g" ./portfolio/settings.py
+- ./install.sh
+- sudo ufw allow 8080/tcp -y
+- sudo reboot
+"""
 
 database_instance, database_IP, database_ID = create_instance(
     ohio_region,
@@ -126,6 +128,7 @@ django_instance, django_IP, django_ID = create_instance(
     django_instance_name,
     ec2_north_virginia
 )
+
 
 # ==============================================================================================================
 
@@ -198,14 +201,6 @@ attach_load_balancer(ec2_auto_scalling_group, targetGroup, auto_scalling_name)
 
 # ==============================================================================================================
 
-# CREATING AUTO SCALLING POLICY
-# ==============================================================================================================
-
-create_auto_scalling_group_policy(
-    ec2_auto_scalling_group, target_GP_name, load_balancer_name, auto_scalling_name, auto_scalling_policy_name)
-
-# ==============================================================================================================
-
 # CREATING LISTENER
 # ==============================================================================================================
 
@@ -214,5 +209,13 @@ create_listener(
     targetGroup,
     load_balancer_arn
 )
+
+# ==============================================================================================================
+
+# CREATING AUTO SCALLING POLICY
+# ==============================================================================================================
+
+create_auto_scalling_group_policy(
+    ec2_auto_scalling_group, targetGroup, load_balancer_arn, auto_scalling_name, auto_scalling_policy_name)
 
 # ==============================================================================================================
