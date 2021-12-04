@@ -62,13 +62,13 @@ security_group_IP_rules_django = [
 # =====================================================================================================================
 
 
-def create_security_group(ec2, security_group_name, ip_rules):
-    vpcs = ec2.describe_vpcs()
+def create_security_group(client, security_group_name, ip_rules):
+    vpcs = client.describe_vpcs()
 
     vpc_id = vpcs['Vpcs'][0]['VpcId']
 
     try:
-        security_group = ec2.create_security_group(
+        security_group = client.create_security_group(
             GroupName=security_group_name,
             Description='F',
             VpcId=vpc_id
@@ -85,7 +85,7 @@ def create_security_group(ec2, security_group_name, ip_rules):
 
     security_group_id = security_group['GroupId']
 
-    ec2.authorize_security_group_ingress(
+    client.authorize_security_group_ingress(
         GroupId=security_group_id,
         IpPermissions=ip_rules
     )

@@ -36,10 +36,10 @@ def delete_security_group(ec2, security_group_name):
 # =====================================================================================================================
 
 
-def delete_all_instances(ec2, waiter):
+def delete_all_instances(client, waiter_intances):
     try:
         delete_instances_ids = []
-        existing_instances = ec2.describe_instances()
+        existing_instances = client.describe_instances()
         existing_instances = existing_instances["Reservations"]
 
         for instance in existing_instances:
@@ -48,29 +48,29 @@ def delete_all_instances(ec2, waiter):
 
         if len(delete_instances_ids) > 0:
 
-            ec2.terminate_instances(InstanceIds=delete_instances_ids)
+            client.terminate_instances(InstanceIds=delete_instances_ids)
             print("-------------------------------------------------------------")
-            print("deleting all instances")
-            logging.info("deleting all instances")
+            print("Deleting all instances from region")
+            logging.info("Deleting all instances from region")
             print(" . ")
 
-            waiter.wait(InstanceIds=delete_instances_ids)
+            waiter_intances.wait(InstanceIds=delete_instances_ids)
 
             print(" . ")
-            print("Instances deleted")
-            logging.info("Instances deleted")
+            print("All instances deleted from that region")
+            logging.info("All Instances deleted from that region")
             print("-------------------------------------------------------------")
         else:
             print("-------------------------------------------------------------")
-            print("No instances to delete")
-            logging.info("No instances to delete")
+            print("No instances to delete from that region")
+            logging.info("No instances to delete from that region")
             print("-------------------------------------------------------------")
             return
 
     except Exception as e:
         print("-------------------------------------------------------------")
-        print("ERROR")
-        logging.info("ERROR")
+        print("Error deleting all instances from that region")
+        logging.info("Error deleting all instances from that region")
         print("-------------------------------------------------------------")
         print(e)
         logging.info(e)
@@ -78,8 +78,8 @@ def delete_all_instances(ec2, waiter):
 # =====================================================================================================================
 
 
-def delete_image(ec2, image_name):
-    images = ec2.describe_images(Filters=[
+def delete_image(client, image_name):
+    images = client.describe_images(Filters=[
         {
             'Name': 'name',
             'Values': [image_name, ]
@@ -94,7 +94,7 @@ def delete_image(ec2, image_name):
         return
     else:
         image_id = images['Images'][0]['ImageId']
-        ec2.deregister_image(ImageId=image_id)
+        client.deregister_image(ImageId=image_id)
         print("-------------------------------------------------------------")
         print(image_name + " deleted")
         logging.info(image_name + " deleted")
@@ -155,8 +155,8 @@ def delete_load_balancer(ec2_load_balancer, load_balancer_name):
 def delete_launch_configuration(ec2_auto_scalling, launch_configuration_name):
     try:
         print("-------------------------------------------------------------")
-        print("deleting launch configuration")
-        logging.info("deleting launch configuration")
+        print("Deleting " + launch_configuration_name)
+        logging.info("Deleting " + launch_configuration_name)
         print(" . ")
 
         ec2_auto_scalling.delete_launch_configuration(
@@ -181,8 +181,8 @@ def delete_launch_configuration(ec2_auto_scalling, launch_configuration_name):
 def delete_auto_scalling(ec2, auto_scalling_name):
     try:
         print("-------------------------------------------------------------")
-        print("Deleting auto scalling group")
-        logging.info("Deleting auto scalling group")
+        print("Deleting " + auto_scalling_name)
+        logging.info("Deleting " + auto_scalling_name)
         print(" . ")
 
         ec2.delete_auto_scaling_group(
